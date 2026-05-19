@@ -1,0 +1,8 @@
+{
+  "name": "Baby Birth Weather Story",
+  "description": "Find out what the weather was like on the day your baby was born and turn it into a cute story.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

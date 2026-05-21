@@ -305,15 +305,187 @@ export default function App() {
     setResult(null);
 
     try {
-      // Step 1: Geocoding
-      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city.trim())}&count=1&language=en&format=json`;
-      const geoRes = await fetch(geoUrl);
-      if (!geoRes.ok) throw new Error("Could not find that city.");
-      const geoData = await geoRes.json();
-      const location = geoData?.results?.[0];
+      // Step 1: Geocoding with international and fallback supporting logic
+      const trimmedCity = city.trim();
+      const lowerCity = trimmedCity.toLowerCase();
+      
+      const searchTerms: string[] = [trimmedCity];
+      
+      // Known translated/native names of key international cities for fast local compatibility
+      const translations: Record<string, string> = {
+        "warszawa": "Warsaw",
+        "warszawy": "Warsaw",
+        "köln": "Cologne",
+        "koeln": "Cologne",
+        "praha": "Prague",
+        "prag": "Prague",
+        "wien": "Vienna",
+        "roma": "Rome",
+        "rom": "Rome",
+        "milano": "Milan",
+        "milan": "Milan",
+        "firenze": "Florence",
+        "florence": "Florence",
+        "venezia": "Venice",
+        "venedig": "Venice",
+        "napoli": "Naples",
+        "lisboa": "Lisbon",
+        "lisbon": "Lisbon",
+        "brussel": "Brussels",
+        "bruxelles": "Brussels",
+        "münchen": "Munich",
+        "munchen": "Munich",
+        "nürnberg": "Nuremberg",
+        "nurmberg": "Nuremberg",
+        "hannover": "Hanover",
+        "københavn": "Copenhagen",
+        "kopenhagen": "Copenhagen",
+        "moskva": "Moscow",
+        "kijev": "Kyiv",
+        "kyiv": "Kyiv",
+        "bukarest": "Bucharest",
+        "bucurești": "Bucharest",
+        "bucuresti": "Bucharest",
+        "beograd": "Belgrade",
+        "belgrad": "Belgrade",
+        "sofia": "Sofia",
+        "zagreb": "Zagreb",
+        "budapest": "Budapest",
+        "kraków": "Krakow",
+        "krakow": "Krakow",
+        "wrocław": "Wroclaw",
+        "wroclaw": "Wroclaw",
+        "gdańsk": "Gdansk",
+        "gdansk": "Gdansk",
+        "poznań": "Poznan",
+        "poznan": "Poznan",
+        "zürich": "Zurich",
+        "zurich": "Zurich",
+        "genève": "Geneva",
+        "geneve": "Geneva",
+        "göteborg": "Gothenburg",
+        "goteborg": "Gothenburg",
+        "tokio": "Tokyo",
+        "tokyo": "Tokyo",
+        "peking": "Beijing",
+        "beijing": "Beijing",
+        "seoul": "Seoul",
+        "mumbai": "Mumbai",
+        "bombay": "Mumbai",
+        "kolkata": "Kolkata",
+        "calcutta": "Kolkata",
+        "krung thep": "Bangkok",
+        "bangkok": "Bangkok",
+        "saigon": "Ho Chi Minh City",
+        "ho chi minh": "Ho Chi Minh City",
+        "hanoi": "Hanoi",
+        "cairo": "Cairo",
+        "al-qahirah": "Cairo",
+        "cape town": "Cape Town",
+        "kaapstad": "Cape Town",
+        "casablanca": "Casablanca",
+        "dar el beida": "Casablanca",
+        "algiers": "Algiers",
+        "alger": "Algiers",
+        "istanbul": "Istanbul",
+        "athen": "Athens",
+        "athena": "Athens",
+        "athina": "Athens",
+        "athens": "Athens",
+        "yerushalayim": "Jerusalem",
+        "al-quds": "Jerusalem",
+        "jerusalem": "Jerusalem",
+        "tel aviv": "Tel Aviv",
+        "riyadh": "Riyadh",
+        "ar-riyad": "Riyadh",
+        "dubai": "Dubai",
+        "ciudad de mexico": "Mexico City",
+        "mexico city": "Mexico City",
+        "bogotá": "Bogota",
+        "bogota": "Bogota",
+        "são paulo": "Sao Paulo",
+        "sao paulo": "Sao Paulo",
+        "rio de janeiro": "Rio de Janeiro",
+        "brasília": "Brasilia",
+        "brasilia": "Brasilia",
+        "reykjavík": "Reykjavik",
+        "reykjavik": "Reykjavik",
+        "dublin": "Dublin",
+        "baile atha cliath": "Dublin",
+        "montréal": "Montreal",
+        "montreal": "Montreal",
+        "québec": "Quebec",
+        "quebec": "Quebec",
+      };
+
+      if (translations[lowerCity]) {
+        searchTerms.push(translations[lowerCity]);
+      }
+
+      // Convert German/European special chars
+      const umlautCleaned = lowerCity
+        .replace(/ä/g, "ae")
+        .replace(/ö/g, "oe")
+        .replace(/ü/g, "ue")
+        .replace(/ß/g, "ss");
+      if (umlautCleaned !== lowerCity && !searchTerms.includes(umlautCleaned)) {
+        searchTerms.push(umlautCleaned);
+      }
+
+      const diacriticNormalized = trimmedCity
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      if (diacriticNormalized && diacriticNormalized !== trimmedCity && !searchTerms.includes(diacriticNormalized)) {
+        searchTerms.push(diacriticNormalized);
+      }
+
+      // Extract raw city name if user searched via "City, Country"
+      if (trimmedCity.includes(",")) {
+        const firstPart = trimmedCity.split(",")[0].trim();
+        if (firstPart && !searchTerms.includes(firstPart)) {
+          searchTerms.push(firstPart);
+          const firstPartLower = firstPart.toLowerCase();
+          if (translations[firstPartLower]) {
+            searchTerms.push(translations[firstPartLower]);
+          }
+        }
+      }
+
+      const uniqueSearchTerms = Array.from(new Set(searchTerms));
+      let location = null;
+
+      for (const term of uniqueSearchTerms) {
+        try {
+          const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=1&language=en&format=json`;
+          const geoRes = await fetch(geoUrl);
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData?.results?.[0]) {
+              location = geoData.results[0];
+              break;
+            }
+          }
+        } catch {
+          // Fall through to next term
+        }
+
+        try {
+          const geoUrlFallback = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=1&format=json`;
+          const geoResFallback = await fetch(geoUrlFallback);
+          if (geoResFallback.ok) {
+            const geoDataFallback = await geoResFallback.json();
+            if (geoDataFallback?.results?.[0]) {
+              location = geoDataFallback.results[0];
+              break;
+            }
+          }
+        } catch {
+          // Fall through to next term
+        }
+      }
 
       if (!location) {
-        throw new Error("I couldn’t find that city. Try adding a state, province, or country.");
+        throw new Error("Try the English city name, for example ‘Warsaw, Poland’.");
       }
 
       // Step 2: Historical Weather
@@ -389,7 +561,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const ExampleCard = ({ context = "intro" }: { context?: string }) => (
+  const ExampleCard = ({ context = "intro" }: { context?: string; key?: any }) => (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -498,30 +670,95 @@ export default function App() {
             </form>
           </div>
 
-          {!result && !loading && (
-            <div className="lg:block">
-              <ExampleCard />
-            </div>
-          )}
-          
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="w-full"
-            >
-              <Card className="rounded-[2.5rem] border-0 bg-slate-900 text-white shadow-2xl overflow-hidden min-h-[400px] flex flex-col items-center justify-center text-center p-12">
-                <div className="relative mb-8">
-                  <Loader2 className="h-16 w-16 animate-spin text-amber-400" />
-                  <CloudSun className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-white opacity-50" />
-                </div>
-                <h3 className="text-3xl font-bold">Checking the skies…</h3>
-                <p className="mt-4 max-w-sm text-lg text-white/70 leading-relaxed font-medium">
-                  Rewinding time to find the exact moment your tiny legend arrived.
-                </p>
-              </Card>
-            </motion.div>
-          )}
+          <div className="w-full">
+            <AnimatePresence mode="wait">
+              {loading && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-full animate-pulse-slow"
+                >
+                  <Card className="rounded-[3.0rem] border-0 bg-slate-900 text-white shadow-2xl overflow-hidden min-h-[450px] flex flex-col items-center justify-center text-center p-12">
+                    <div className="relative mb-8">
+                      <Loader2 className="h-16 w-16 animate-spin text-amber-400" />
+                      <CloudSun className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-white opacity-50" />
+                    </div>
+                    <h3 className="text-3xl font-bold">Checking the skies…</h3>
+                    <p className="mt-4 max-w-sm text-lg text-white/70 leading-relaxed font-medium">
+                      Rewinding time to find the exact moment your tiny legend arrived.
+                    </p>
+                  </Card>
+                </motion.div>
+              )}
+
+              {!loading && result && (
+                <motion.div
+                  key="real"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-full"
+                >
+                  <Card className="overflow-hidden rounded-[3rem] border-0 bg-slate-900 text-white shadow-2xl relative">
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <Sparkles className="h-32 w-32" />
+                    </div>
+                    <CardContent className="p-10 sm:p-14 relative z-10">
+                      <div className="flex items-center gap-4 mb-10">
+                        <div className="rounded-2xl bg-amber-400/20 border border-amber-400/30 p-4 animate-bounce-slow">
+                          <Baby className="h-8 w-8 text-amber-400" />
+                        </div>
+                        <div>
+                          <Badge className="bg-amber-400 text-slate-900 hover:bg-amber-300 font-black mb-1 px-4 py-1">THE REVEAL</Badge>
+                          <p className="text-[10px] text-white/50 tracking-[0.3em] uppercase font-black">How it feels</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-8">
+                        <p className="text-xs font-mono text-white/60 tracking-[0.2em] uppercase font-bold">
+                          {result.locationName.toUpperCase()} • {formatDisplayDate(result.date).toUpperCase()}
+                        </p>
+                        <div className="text-8xl">{result.weatherEmoji}</div>
+                        
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
+                            {result.weatherLabel} {result.tempC !== null ? `• ${result.tempC}°C` : ""}
+                          </span>
+                          <h2 className="text-4xl sm:text-5xl font-black leading-tight">{result.title}</h2>
+                        </div>
+
+                        <p className="text-xl sm:text-2xl leading-relaxed text-white/80 font-serif italic border-l-4 border-amber-400/30 pl-6">
+                          "{result.story}"
+                        </p>
+                        <p className="text-xl font-black text-amber-300">
+                          {result.twist}
+                        </p>
+
+                        <div className="pt-6 flex flex-col sm:flex-row gap-4">
+                          <Button onClick={handleShare} className="h-14 rounded-2xl px-6 flex-1 text-base font-bold bg-amber-400 text-slate-900 hover:bg-amber-300 border-none transition-all shadow-lg active:scale-95">
+                            <Share2 className="mr-2 h-5 w-5" />
+                            Share result
+                          </Button>
+                          <Button onClick={resetForm} variant="outline" className="h-14 rounded-2xl px-6 flex-1 text-base font-bold bg-white/10 text-white border-none hover:bg-white/20 transition-all active:scale-95">
+                            <RefreshCw className="mr-2 h-5 w-5" />
+                            Check another
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
+              {!loading && !result && (
+                <ExampleCard key="example" />
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </header>
 
@@ -529,70 +766,12 @@ export default function App() {
         <AnimatePresence mode="wait">
           {result && (
             <motion.div
-              key="result"
+              key="shop"
               ref={resultRef}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
-              className="space-y-20 scroll-mt-20 pb-20"
             >
-              {/* SECTION 1 — REAL ANSWER: MAIN EMOTIONAL REVEAL */}
-              <div className="space-y-12">
-                <div className="text-center space-y-4">
-                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-6 py-2 rounded-full font-black text-xs tracking-widest uppercase">THE REVEAL</Badge>
-                  <h2 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight">Your Baby Birth Weather Story</h2>
-                </div>
-
-                <div className="overflow-hidden rounded-[4rem] border-0 shadow-2xl bg-white ring-1 ring-slate-100/50 p-8 sm:p-20 text-center space-y-12 max-w-4xl mx-auto">
-                    <div className="text-9xl sm:text-[10rem] filter drop-shadow-2xl animate-bounce-slow leading-none">{result.weatherEmoji}</div>
-                    
-                    <div className="space-y-6">
-                      <h3 className="text-5xl sm:text-7xl font-black tracking-tight text-slate-900 leading-[1.1]">{result.title}</h3>
-                    </div>
-
-                    <div className="space-y-10 py-12 border-y border-slate-50">
-                      <p className="text-2xl sm:text-4xl leading-relaxed text-slate-600 font-medium italic font-serif">
-                        "{result.story}"
-                      </p>
-                      <div className="h-1 w-24 bg-amber-100 mx-auto rounded-full" />
-                      <p className="font-black text-slate-900 text-3xl sm:text-5xl tracking-tight">
-                        {result.twist}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap justify-center gap-8 text-xl font-bold">
-                        <div className="flex items-center gap-3 text-slate-400">
-                          <MapPin className="h-6 w-6 text-amber-400" />
-                          {result.locationName}
-                        </div>
-                        <div className="flex items-center gap-3 text-slate-400">
-                          <CalendarDays className="h-6 w-6 text-amber-400" />
-                          {formatDisplayDate(result.date)}
-                        </div>
-                        <div className="flex items-center gap-3 text-slate-900 bg-slate-50 px-6 py-3 rounded-2xl shadow-sm">
-                          <CloudSun className="h-6 w-6 text-amber-500" />
-                          {result.weatherLabel} {result.tempC !== null ? `• ${result.tempC}°C` : ""}
-                        </div>
-                    </div>
-                </div>
-              </div>
-
-              {/* SECTION 2 — BLUE KEEPSAKE / SHARE CARD: MINIMAL & ELEGANT */}
-              <div className="space-y-12 max-w-4xl mx-auto px-4">
-
-                  <div className="flex flex-wrap gap-6 justify-center">
-                    <Button onClick={handleShare} size="lg" className="h-16 rounded-2xl px-12 text-xl font-bold shadow-2xl shadow-amber-200/50 hover:shadow-amber-200/70 transition-all bg-amber-400 text-slate-900 hover:bg-amber-300 border-none">
-                      <Share2 className="mr-3 h-6 w-6" />
-                      Share Result
-                    </Button>
-                    <Button onClick={resetForm} variant="outline" size="lg" className="h-16 rounded-2xl px-12 text-xl font-bold bg-white border-2 border-slate-100 hover:bg-slate-50 transition-all text-slate-900">
-                      <RefreshCw className="mr-3 h-6 w-6" />
-                      Check Another
-                    </Button>
-                  </div>
-
-              </div>
-
               {/* SECTION 3 — SHOP THE STORY */}
               <section id="shop" className="space-y-12 pt-24 border-t border-slate-100/60 transition-all">
                 <div className="text-center space-y-4">
@@ -619,8 +798,6 @@ export default function App() {
                   ))}
                 </div>
               </section>
-
-
             </motion.div>
           )}
         </AnimatePresence>

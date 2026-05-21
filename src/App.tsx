@@ -440,7 +440,7 @@ export default function App() {
                   <div className="relative">
                     <Input
                       type="text"
-                      placeholder="DD/MM/YYYY or MM/DD/YYYY"
+                      placeholder="MM/DD/YYYY"
                       value={dateInput}
                       onChange={(e) => setDateInput(e.target.value)}
                       className={`h-12 rounded-2xl text-base transition-colors ${dateError ? 'border-rose-300 bg-rose-50/30' : 'focus:border-amber-400'}`}

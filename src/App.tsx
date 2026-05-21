@@ -166,45 +166,29 @@ const PRODUCT_MATCH: Record<string, { title: string; description: string; cta: s
 };
 
 /**
- * Validates and parses a date string in DD/MM/YYYY or MM/DD/YYYY formats.
+ * Validates and parses a date string strictly in MM/DD/YYYY format.
  * Returns a YYYY-MM-DD string or null.
  */
 function parseDate(input: string): string | null {
   const cleanInput = input.trim();
-  const regex = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/;
+  const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
   const match = cleanInput.match(regex);
   
   if (!match) return null;
 
-  const p1 = parseInt(match[1]);
-  const p2 = parseInt(match[2]);
-  const year = parseInt(match[3]);
+  const month = parseInt(match[1], 10);
+  const day = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
 
-  if (isNaN(p1) || isNaN(p2) || isNaN(year)) return null;
+  if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
+
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+
   const currentYear = new Date().getFullYear();
   if (year < 1900 || year > currentYear) return null;
 
-  let day, month;
-
-  // Smart detection for DD/MM vs MM/DD
-  if (p1 > 12 && p2 <= 12) {
-    // Must be DD/MM/YYYY
-    day = p1;
-    month = p2;
-  } else if (p1 <= 12 && p2 > 12) {
-    // Must be MM/DD/YYYY
-    day = p2;
-    month = p1;
-  } else if (p1 <= 12 && p2 <= 12) {
-    // Ambiguous. Defaulting to DD/MM/YYYY as a common preference for non-US formats,
-    // but effectively we just need a valid date.
-    day = p1;
-    month = p2;
-  } else {
-    return null; // Both > 12 or invalid
-  }
-
-  // Final check for valid date components
+  // Final check for valid date components (e.g. February 30th)
   const date = new Date(year, month - 1, day);
   if (
     date.getFullYear() !== year ||
@@ -215,9 +199,14 @@ function parseDate(input: string): string | null {
   }
 
   // Check if future
-  if (date > new Date()) return null;
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  if (date > today) return null;
 
-  return date.toISOString().split('T')[0];
+  const yyyy = year.toString();
+  const mm = month.toString().padStart(2, '0');
+  const dd = day.toString().padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function formatDisplayDate(dateString: string) {
@@ -258,12 +247,12 @@ export default function App() {
     }
   }, [result]);
 
-  // Live validation for the date field
+  // Live validation for the date field (validated at block length)
   useEffect(() => {
-    if (dateInput.length > 5) {
+    if (dateInput.length === 10) {
       const parsed = parseDate(dateInput);
-      if (!parsed && !/^\d{2}\/\d{2}\/\d{4}$/.test(dateInput) && dateInput.includes('/')) {
-         // Live feedback handled by state
+      if (!parsed) {
+        setDateError("Please enter a valid birth date in MM/DD/YYYY format.");
       } else {
         setDateError("");
       }
@@ -271,6 +260,28 @@ export default function App() {
       setDateError("");
     }
   }, [dateInput]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    
+    let formatted = "";
+    if (digits.length > 0) {
+      const mm = digits.slice(0, 2);
+      formatted += mm;
+      
+      if (digits.length > 2) {
+        const dd = digits.slice(2, 4);
+        formatted += "/" + dd;
+        
+        if (digits.length > 4) {
+          const yyyy = digits.slice(4, 8);
+          formatted += "/" + yyyy;
+        }
+      }
+    }
+    setDateInput(formatted);
+  };
 
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
@@ -280,7 +291,7 @@ export default function App() {
     const normalizedDate = parseDate(dateInput);
 
     if (!normalizedDate) {
-      setDateError("Please enter a valid date like 15/05/2024 or 05/15/2024.");
+      setDateError("Please enter a valid birth date in MM/DD/YYYY format (e.g., 11/04/1988).");
       return;
     }
 
@@ -440,9 +451,10 @@ export default function App() {
                   <div className="relative">
                     <Input
                       type="text"
+                      inputMode="numeric"
                       placeholder="MM/DD/YYYY"
                       value={dateInput}
-                      onChange={(e) => setDateInput(e.target.value)}
+                      onChange={handleDateChange}
                       className={`h-12 rounded-2xl text-base transition-colors ${dateError ? 'border-rose-300 bg-rose-50/30' : 'focus:border-amber-400'}`}
                     />
                     {dateError && (

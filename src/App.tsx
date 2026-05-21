@@ -305,11 +305,21 @@ export default function App() {
     setResult(null);
 
     try {
-      // Step 1: Geocoding with international and fallback supporting logic
+      // Step 1: Geocoding with advanced international and fallback supporting logic
       const trimmedCity = city.trim();
-      const lowerCity = trimmedCity.toLowerCase();
       
-      const searchTerms: string[] = [trimmedCity];
+      // 1. Detect and separate context if a comma is present (e.g. "Warszawa, polska")
+      let cityPart = trimmedCity;
+      let contextParts: string[] = [];
+
+      if (trimmedCity.includes(",")) {
+        const parts = trimmedCity.split(",");
+        cityPart = parts[0].trim();
+        contextParts = parts.slice(1).map(p => p.trim()).filter(Boolean);
+      }
+
+      const lowerCityPart = cityPart.toLowerCase();
+      const searchTerms: string[] = [cityPart];
       
       // Known translated/native names of key international cities for fast local compatibility
       const translations: Record<string, string> = {
@@ -418,70 +428,273 @@ export default function App() {
         "quebec": "Quebec",
       };
 
-      if (translations[lowerCity]) {
-        searchTerms.push(translations[lowerCity]);
+      if (translations[lowerCityPart]) {
+        searchTerms.push(translations[lowerCityPart]);
       }
 
       // Convert German/European special chars
-      const umlautCleaned = lowerCity
+      const umlautCleaned = lowerCityPart
         .replace(/ä/g, "ae")
         .replace(/ö/g, "oe")
         .replace(/ü/g, "ue")
         .replace(/ß/g, "ss");
-      if (umlautCleaned !== lowerCity && !searchTerms.includes(umlautCleaned)) {
+      if (umlautCleaned !== lowerCityPart && !searchTerms.includes(umlautCleaned)) {
         searchTerms.push(umlautCleaned);
       }
 
-      const diacriticNormalized = trimmedCity
+      const diacriticNormalized = cityPart
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
-      if (diacriticNormalized && diacriticNormalized !== trimmedCity && !searchTerms.includes(diacriticNormalized)) {
+      if (diacriticNormalized && diacriticNormalized !== cityPart && !searchTerms.includes(diacriticNormalized)) {
         searchTerms.push(diacriticNormalized);
       }
 
-      // Extract raw city name if user searched via "City, Country"
-      if (trimmedCity.includes(",")) {
-        const firstPart = trimmedCity.split(",")[0].trim();
-        if (firstPart && !searchTerms.includes(firstPart)) {
-          searchTerms.push(firstPart);
-          const firstPartLower = firstPart.toLowerCase();
-          if (translations[firstPartLower]) {
-            searchTerms.push(translations[firstPartLower]);
+      // If there was a comma, also try searching the original full trimmedCity query as a fallback
+      if (trimmedCity !== cityPart && !searchTerms.includes(trimmedCity)) {
+        searchTerms.push(trimmedCity);
+      }
+
+      const uniqueSearchTerms = Array.from(new Set(searchTerms));
+      const uniqueCandidates = new Map<number, any>();
+
+      // 2. Fetch candidates from Open-Meteo for each unique search term simultaneously
+      const fetchPromises = uniqueSearchTerms.map(async (term) => {
+        try {
+          const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=20&language=en&format=json`;
+          const geoRes = await fetch(geoUrl);
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            return geoData?.results || [];
+          }
+        } catch {
+          // Ignore
+        }
+        return [];
+      });
+
+      const resultsArrays = await Promise.all(fetchPromises);
+      for (const results of resultsArrays) {
+        for (const candidate of results) {
+          if (candidate && candidate.id) {
+            uniqueCandidates.set(candidate.id, candidate);
           }
         }
       }
 
-      const uniqueSearchTerms = Array.from(new Set(searchTerms));
+      // Fallback: If no results found with language=en, try without it
+      if (uniqueCandidates.size === 0) {
+        const fallbackPromises = uniqueSearchTerms.map(async (term) => {
+          try {
+            const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=20&format=json`;
+            const geoRes = await fetch(geoUrl);
+            if (geoRes.ok) {
+              const geoData = await geoRes.json();
+              return geoData?.results || [];
+            }
+          } catch {
+            // Ignore
+          }
+          return [];
+        });
+
+        const fallbackResults = await Promise.all(fallbackPromises);
+        for (const results of fallbackResults) {
+          for (const candidate of results) {
+            if (candidate && candidate.id) {
+              uniqueCandidates.set(candidate.id, candidate);
+            }
+          }
+        }
+      }
+
+      // 3. Setup context-matching dictionary for country translation normalization
+      const countryMap: Record<string, string> = {
+        "polska": "Poland", "polen": "Poland", "pologne": "Poland", "polonia": "Poland", "poland": "Poland", "pl": "Poland",
+        "deutschland": "Germany", "allemagne": "Germany", "alemania": "Germany", "germania": "Germany", "germany": "Germany", "de": "Germany",
+        "españa": "Spain", "espana": "Spain", "spain": "Spain", "espagne": "Spain", "espanha": "Spain", "es": "Spain",
+        "france": "France", "francia": "France", "fr": "France",
+        "italia": "Italy", "italy": "Italy", "italie": "Italy", "it": "Italy",
+        "united kingdom": "United Kingdom", "uk": "United Kingdom", "gbr": "United Kingdom", "gb": "United Kingdom", "great britain": "United Kingdom", "england": "United Kingdom", "scotland": "United Kingdom", "wielka brytania": "United Kingdom",
+        "united states": "United States", "united states of america": "United States", "usa": "United States", "us": "United States", "america": "United States", "stany zjednoczone": "United States",
+        "belgique": "Belgium", "belgië": "Belgium", "belgie": "Belgium", "belgium": "Belgium", "be": "Belgium",
+        "nederland": "Netherlands", "netherlands": "Netherlands", "holland": "Netherlands", "nl": "Netherlands",
+        "österreich": "Austria", "oesterreich": "Austria", "austria": "Austria", "at": "Austria",
+        "schweiz": "Switzerland", "suisse": "Switzerland", "svizzera": "Switzerland", "switzerland": "Switzerland", "szwajcaria": "Switzerland", "ch": "Switzerland",
+        "danmark": "Denmark", "denmark": "Denmark", "dk": "Denmark",
+        "sverige": "Sweden", "sweden": "Sweden", "se": "Sweden",
+        "norge": "Norway", "norway": "Norway", "no": "Norway",
+        "suomi": "Finland", "finland": "Finland", "fi": "Finland",
+        "portugal": "Portugal", "pt": "Portugal",
+        "magyarország": "Hungary", "magyarorszag": "Hungary", "hungary": "Hungary", "hu": "Hungary",
+        "česko": "Czechia", "cesko": "Czechia", "česká republika": "Czechia", "ceska republika": "Czechia", "czechia": "Czechia", "czech republic": "Czechia", "czechy": "Czechia", "cz": "Czechia",
+        "slovensko": "Slovakia", "slovakia": "Slovakia", "sk": "Slovakia",
+        "türkiye": "Turkey", "turkiye": "Turkey", "turkey": "Turkey", "tr": "Turkey",
+        "greece": "Greece", "hellas": "Greece", "gr": "Greece",
+        "ukraine": "Ukraine", "ukrayina": "Ukraine", "україна": "Ukraine", "ua": "Ukraine",
+        "românia": "Romania", "romania": "Romania", "ro": "Romania",
+        "bulgaria": "Bulgaria", "bg": "Bulgaria",
+        "croatia": "Croatia", "hrvatska": "Croatia", "hr": "Croatia",
+        "brasil": "Brazil", "brazil": "Brazil", "br": "Brazil",
+        "méxico": "Mexico", "mexico": "Mexico", "mx": "Mexico",
+        "colombia": "Colombia", "co": "Colombia",
+        "argentina": "Argentina", "ar": "Argentina",
+        "canada": "Canada", "ca": "Canada",
+        "australia": "Australia", "au": "Australia",
+        "india": "India", "in": "India",
+        "japan": "Japan", "nippon": "Japan", "jp": "Japan",
+        "china": "China", "cn": "China",
+        "ireland": "Ireland", "ie": "Ireland", "éire": "Ireland", "eire": "Ireland",
+        "new zealand": "New Zealand", "nz": "New Zealand",
+        "south africa": "South Africa", "za": "South Africa"
+      };
+
+      const usStates: Record<string, string> = {
+        "al": "Alabama", "ak": "Alaska", "az": "Arizona", "ar": "Arkansas", "ca": "California",
+        "co": "Colorado", "ct": "Connecticut", "de": "Delaware", "fl": "Florida", "ga": "Georgia",
+        "hi": "Hawaii", "id": "Idaho", "il": "Illinois", "in": "Indiana", "ia": "Iowa",
+        "ks": "Kansas", "ky": "Kentucky", "la": "Louisiana", "me": "Maine", "md": "Maryland",
+        "ma": "Massachusetts", "mi": "Michigan", "mn": "Minnesota", "ms": "Mississippi", "mo": "Missouri",
+        "mt": "Montana", "ne": "Nebraska", "nv": "Nevada", "nh": "New Hampshire", "nj": "New Jersey",
+        "nm": "New Mexico", "ny": "New York", "nc": "North Carolina", "nd": "North Dakota", "oh": "Ohio",
+        "ok": "Oklahoma", "or": "Oregon", "pa": "Pennsylvania", "ri": "Rhode Island", "sc": "South Carolina",
+        "sd": "South Dakota", "tn": "Tennessee", "tx": "Texas", "ut": "Utah", "vt": "Vermont",
+        "va": "Virginia", "wa": "Washington", "wv": "West Virginia", "wi": "Wisconsin", "wy": "Wyoming"
+      };
+
+      const parsedContexts = contextParts.map(part => {
+        const p = part.toLowerCase();
+        if (countryMap[p]) {
+          return { type: "country", val: countryMap[p].toLowerCase() };
+        }
+        if (usStates[p]) {
+          return { type: "state", val: usStates[p].toLowerCase() };
+        }
+        return { type: "generic", val: p };
+      });
+
+      // 4. Scoring function for ranking candidates
+      const calculateScore = (candidate: any) => {
+        let score = 0;
+
+        // Context Matching score
+        let hasCountryContext = false;
+        let matchesCountryContext = false;
+
+        let hasStateContext = false;
+        let matchesStateContext = false;
+
+        let hasGenericContext = false;
+        let matchesGenericContext = false;
+
+        const candCountry = (candidate.country || "").toLowerCase();
+        const candCountryCode = (candidate.country_code || "").toLowerCase();
+        const candAdmin1 = (candidate.admin1 || "").toLowerCase();
+        const candAdmin2 = (candidate.admin2 || "").toLowerCase();
+        const candAdmin3 = (candidate.admin3 || "").toLowerCase();
+        const candAdmin4 = (candidate.admin4 || "").toLowerCase();
+        const candName = (candidate.name || "").toLowerCase();
+
+        for (const ctx of parsedContexts) {
+          if (ctx.type === 'country') {
+            hasCountryContext = true;
+            if (candCountry === ctx.val || candCountryCode === ctx.val) {
+              matchesCountryContext = true;
+            }
+          } else if (ctx.type === 'state') {
+            hasStateContext = true;
+            if (candAdmin1 === ctx.val) {
+              matchesStateContext = true;
+            }
+          } else {
+            hasGenericContext = true;
+            if (
+              candAdmin1.includes(ctx.val) ||
+              candAdmin2.includes(ctx.val) ||
+              candAdmin3.includes(ctx.val) ||
+              candAdmin4.includes(ctx.val) ||
+              candCountry.includes(ctx.val) ||
+              candName.includes(ctx.val)
+            ) {
+              matchesGenericContext = true;
+            }
+          }
+        }
+
+        if (hasCountryContext) {
+          if (matchesCountryContext) {
+            score += 20000;
+          } else {
+            score -= 50000; // Heavily penalize wrong country when country context was entered
+          }
+        }
+
+        if (hasStateContext) {
+          if (matchesStateContext) {
+            score += 10000;
+          } else {
+            score -= 20000; // Heavily penalize wrong state
+          }
+        }
+
+        if (hasGenericContext) {
+          if (matchesGenericContext) {
+            score += 5000;
+          } else {
+            score -= 10000; // Penalize mismatching generic contexts
+          }
+        }
+
+        // Feature Code ranking (prefer actual populated places over districts/parks/neighborhoods)
+        const fCode = (candidate.feature_code || "").toUpperCase();
+        let featureScore = 0;
+
+        if (fCode === "PPLC") {
+          featureScore = 1500; // Nation capital
+        } else if (fCode === "PPLA") {
+          featureScore = 1200; // First-order admin capital (province/state seat)
+        } else if (fCode === "PPLA2") {
+          featureScore = 1000; // Second-order seat
+        } else if (fCode === "PPLA3") {
+          featureScore = 800;
+        } else if (fCode === "PPLA4") {
+          featureScore = 600;
+        } else if (fCode === "PPL") {
+          featureScore = 500; // Populated place (city/town/village)
+        } else if (fCode.startsWith("PPL")) {
+          if (fCode === "PPLX") {
+            featureScore = 50; // Section of populated place (neighborhood/suburb/district)
+          } else {
+            featureScore = 300;
+          }
+        } else if (fCode.startsWith("ADM")) {
+          featureScore = 100; // Administrative divisions
+        } else {
+          featureScore = -2000; // Non-populated tags, historic districts, parks, etc.
+        }
+
+        score += featureScore;
+
+        // Logarithmic population bonus to prefer internationally known major cities
+        const population = candidate.population || 0;
+        if (population > 0) {
+          score += Math.log10(population) * 150;
+        }
+
+        // Exact name match bonus of the first name segment
+        if (candName === lowerCityPart) {
+          score += 200;
+        }
+
+        return score;
+      };
+
+      const candidates = Array.from(uniqueCandidates.values());
+
       let location = null;
-
-      for (const term of uniqueSearchTerms) {
-        try {
-          const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=1&language=en&format=json`;
-          const geoRes = await fetch(geoUrl);
-          if (geoRes.ok) {
-            const geoData = await geoRes.json();
-            if (geoData?.results?.[0]) {
-              location = geoData.results[0];
-              break;
-            }
-          }
-        } catch {
-          // Fall through to next term
-        }
-
-        try {
-          const geoUrlFallback = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=1&format=json`;
-          const geoResFallback = await fetch(geoUrlFallback);
-          if (geoResFallback.ok) {
-            const geoDataFallback = await geoResFallback.json();
-            if (geoDataFallback?.results?.[0]) {
-              location = geoDataFallback.results[0];
-              break;
-            }
-          }
-        } catch {
-          // Fall through to next term
-        }
+      if (candidates.length > 0) {
+        // Sort candidates based on score descending
+        candidates.sort((a, b) => calculateScore(b) - calculateScore(a));
+        location = candidates[0];
       }
 
       if (!location) {

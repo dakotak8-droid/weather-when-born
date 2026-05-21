@@ -940,13 +940,15 @@ export default function App() {
                             {formatDisplayDate(result.date).toUpperCase()}
                           </p>
                         </div>
-                        <div className="text-8xl">{result.weatherEmoji}</div>
-                        
-                        <div className="space-y-2">
-                          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
+                        <div className="flex items-center gap-4">
+                          <div className="text-5xl sm:text-6xl">{result.weatherEmoji}</div>
+                          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
                             {result.weatherLabel} {result.tempC !== null ? `• ${result.tempC}°C` : ""}
-                          </span>
-                          <h2 className="text-4xl sm:text-5xl font-black leading-tight">{result.title}</h2>
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <h2 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-white">{result.title}</h2>
                         </div>
 
                         <p className="text-xl sm:text-2xl leading-relaxed text-white/80 font-serif italic border-l-4 border-amber-400/30 pl-6">

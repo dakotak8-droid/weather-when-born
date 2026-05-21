@@ -816,21 +816,25 @@ export default function App() {
       <header className="mx-auto max-w-6xl px-4 pt-10 pb-12 sm:px-6 lg:px-8">
         <div className="grid items-stretch gap-12 lg:grid-cols-2">
           <div className="space-y-6 flex flex-col justify-between h-full">
-            <Badge variant="secondary" className="rounded-full px-4 py-1 text-sm font-medium">Tiny date. Big memory.</Badge>
+            <div className="flex justify-start">
+              <Badge variant="outline" className="rounded-full px-3 py-0.5 text-[11px] font-bold tracking-wider uppercase text-slate-500 bg-slate-100/50 border-slate-200/50 pointer-events-none">
+                Tiny date. Big memory.
+              </Badge>
+            </div>
             <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-slate-900">
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-slate-900 leading-[1.15]">
                 What was the weather when your baby was born?
               </h1>
-              <p className="max-w-xl text-lg leading-8 text-slate-600 sm:text-xl font-medium">
+              <p className="max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base font-medium">
                 Enter a birth date and city to reveal the weather from that day — then turn it into a sweet, funny little story worth sharing.
               </p>
             </div>
 
-            <form onSubmit={handleLookup} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8 space-y-6 flex-1 flex flex-col justify-center">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-amber-500" />
+            <form onSubmit={handleLookup} className="rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] sm:p-6 space-y-5 flex-1 flex flex-col justify-center">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-slate-400 flex items-center gap-1.5">
+                    <CalendarDays className="h-3.5 w-3.5 text-amber-550" />
                     Birth date
                   </label>
                   <div className="relative">
@@ -840,7 +844,7 @@ export default function App() {
                       placeholder="MM/DD/YYYY"
                       value={dateInput}
                       onChange={handleDateChange}
-                      className={`h-12 rounded-2xl text-base transition-colors ${dateError ? 'border-rose-300 bg-rose-50/30' : 'focus:border-amber-400'}`}
+                      className={`h-11 rounded-xl text-sm transition-colors ${dateError ? 'border-rose-300 bg-rose-50/30' : 'focus:border-amber-400'}`}
                     />
                     {dateError && (
                       <motion.p 
@@ -854,9 +858,9 @@ export default function App() {
                     )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-amber-500" />
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-slate-400 flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-amber-550" />
                     Birth city & country
                   </label>
                   <Input
@@ -864,19 +868,19 @@ export default function App() {
                     placeholder="Toronto, Canada"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="h-12 rounded-2xl text-base focus:border-amber-400"
+                    className="h-11 rounded-xl text-sm focus:border-amber-400"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center pt-2">
-                <Button type="submit" disabled={loading} className="h-14 rounded-2xl px-10 text-lg font-bold bg-slate-900 hover:bg-slate-800 transition-all shadow-xl active:scale-95">
-                  {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-amber-400" />}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center pt-1">
+                <Button type="submit" disabled={loading} className="h-12 rounded-xl px-8 text-sm font-bold bg-slate-900 hover:bg-slate-800 transition-all shadow-md active:scale-95">
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-amber-400" />}
                   Reveal the weather story
                 </Button>
               </div>
 
-              {error ? <p className="text-sm font-semibold text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100 flex items-center gap-2">
+              {error ? <p className="text-xs font-semibold text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {error}
               </p> : null}

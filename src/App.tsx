@@ -778,13 +778,13 @@ export default function App() {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full"
+      className="w-full h-full"
     >
-      <Card className="overflow-hidden rounded-[3rem] border-0 bg-slate-900 text-white shadow-2xl relative">
+      <Card className="overflow-hidden rounded-[3rem] border-0 bg-slate-900 text-white shadow-2xl relative h-full flex flex-col">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Sparkles className="h-32 w-32" />
         </div>
-        <CardContent className="p-10 sm:p-14 relative z-10">
+        <CardContent className="p-10 sm:p-14 relative z-10 h-full flex flex-col justify-between">
           <div className="flex items-center gap-4 mb-10">
             <div className="rounded-2xl bg-amber-400/20 border border-amber-400/30 p-4">
               <Baby className="h-8 w-8 text-amber-400" />
@@ -814,8 +814,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-amber-50 text-slate-900 font-sans">
       <header className="mx-auto max-w-6xl px-4 pt-10 pb-12 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
+        <div className="grid items-stretch gap-12 lg:grid-cols-2">
+          <div className="space-y-6 flex flex-col justify-between h-full">
             <Badge variant="secondary" className="rounded-full px-4 py-1 text-sm font-medium">Tiny date. Big memory.</Badge>
             <div className="space-y-4">
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-slate-900">
@@ -826,7 +826,7 @@ export default function App() {
               </p>
             </div>
 
-            <form onSubmit={handleLookup} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8 space-y-6">
+            <form onSubmit={handleLookup} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8 space-y-6 flex-1 flex flex-col justify-center">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -883,7 +883,7 @@ export default function App() {
             </form>
           </div>
 
-          <div className="w-full">
+          <div className="w-full h-full">
             <AnimatePresence mode="wait">
               {loading && (
                 <motion.div
@@ -892,9 +892,9 @@ export default function App() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="w-full animate-pulse-slow"
+                  className="w-full h-full animate-pulse-slow"
                 >
-                  <Card className="rounded-[3.0rem] border-0 bg-slate-900 text-white shadow-2xl overflow-hidden min-h-[450px] flex flex-col items-center justify-center text-center p-12">
+                  <Card className="rounded-[3.0rem] border-0 bg-slate-900 text-white shadow-2xl overflow-hidden min-h-[450px] flex flex-col items-center justify-center text-center p-12 h-full">
                     <div className="relative mb-8">
                       <Loader2 className="h-16 w-16 animate-spin text-amber-400" />
                       <CloudSun className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-white opacity-50" />
@@ -914,13 +914,13 @@ export default function App() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="w-full"
+                  className="w-full h-full"
                 >
-                  <Card className="overflow-hidden rounded-[3rem] border-0 bg-slate-900 text-white shadow-2xl relative">
+                  <Card className="overflow-hidden rounded-[3rem] border-0 bg-slate-900 text-white shadow-2xl relative h-full flex flex-col">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                       <Sparkles className="h-32 w-32" />
                     </div>
-                    <CardContent className="p-10 sm:p-14 relative z-10">
+                    <CardContent className="p-10 sm:p-14 relative z-10 h-full flex flex-col justify-between">
                       <div className="flex items-center gap-4 mb-10">
                         <div className="rounded-2xl bg-amber-400/20 border border-amber-400/30 p-4 animate-bounce-slow">
                           <Baby className="h-8 w-8 text-amber-400" />

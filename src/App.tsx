@@ -932,9 +932,14 @@ export default function App() {
                       </div>
 
                       <div className="space-y-8">
-                        <p className="text-xs font-mono text-white/60 tracking-[0.2em] uppercase font-bold">
-                          {result.locationName.toUpperCase()} • {formatDisplayDate(result.date).toUpperCase()}
-                        </p>
+                        <div className="space-y-1">
+                          <p className="text-xs font-mono text-white/60 tracking-[0.2em] uppercase font-bold leading-relaxed break-words">
+                            {result.locationName.toUpperCase()}
+                          </p>
+                          <p className="text-xs font-mono text-white/45 tracking-[0.2em] uppercase font-bold leading-relaxed">
+                            {formatDisplayDate(result.date).toUpperCase()}
+                          </p>
+                        </div>
                         <div className="text-8xl">{result.weatherEmoji}</div>
                         
                         <div className="space-y-2">

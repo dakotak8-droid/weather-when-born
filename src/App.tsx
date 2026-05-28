@@ -778,31 +778,31 @@ export default function App() {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full h-full"
+      className="w-full h-full lg:max-h-[370px]"
     >
-      <Card className="overflow-hidden rounded-[3rem] border-0 bg-slate-900 text-white shadow-2xl relative h-full flex flex-col">
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Sparkles className="h-32 w-32" />
+      <Card className="overflow-hidden rounded-[2.5rem] border-0 bg-slate-900 text-white shadow-2xl relative h-full flex flex-col">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <Sparkles className="h-16 w-16" />
         </div>
-        <CardContent className="p-10 sm:p-14 relative z-10 h-full flex flex-col justify-between">
-          <div className="flex items-center gap-4 mb-10">
-            <div className="rounded-2xl bg-amber-400/20 border border-amber-400/30 p-4">
-              <Baby className="h-8 w-8 text-amber-400" />
+        <CardContent className="p-5 sm:p-6 relative z-10 h-full flex flex-col justify-between">
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="rounded-lg bg-amber-400/20 border border-amber-400/30 p-1.5">
+              <Baby className="h-4 w-4 text-amber-400" />
             </div>
             <div>
-              <Badge className="bg-amber-400 text-slate-900 hover:bg-amber-300 font-black mb-1 px-4 py-1">EXAMPLE REVEAL</Badge>
-              <p className="text-[10px] text-white/50 tracking-[0.3em] uppercase font-black">How it feels</p>
+              <Badge className="bg-amber-400 text-slate-900 hover:bg-amber-300 font-extrabold mb-0.5 px-2 py-0.5 text-[8px]">EXAMPLE REVEAL</Badge>
+              <p className="text-[7.5px] text-white/50 tracking-[0.3em] uppercase font-black">How it feels</p>
             </div>
           </div>
 
-          <div className="space-y-8">
-            <p className="text-xs font-mono text-white/60 tracking-[0.2em] uppercase font-bold">LONDON, ONTARIO • MAY 14, 2024</p>
-            <div className="text-8xl">🌧️</div>
-            <h2 className="text-4xl sm:text-5xl font-black leading-tight">A rainy-day legend was born</h2>
-            <p className="text-xl sm:text-2xl leading-relaxed text-white/80 font-serif italic border-l-4 border-amber-400/30 pl-6">
+          <div className="space-y-2.5">
+            <p className="text-[8.5px] sm:text-[9.5px] font-mono text-white/60 tracking-[0.2em] uppercase font-bold">LONDON, ONTARIO • MAY 14, 2024</p>
+            <div className="text-3xl sm:text-4xl text-left">🌧️</div>
+            <h2 className="text-lg sm:text-xl font-black leading-tight tracking-tight text-white">A rainy-day legend was born</h2>
+            <p className="text-[11px] sm:text-xs leading-relaxed text-white/85 font-serif italic border-l-2 border-amber-400/30 pl-2.5">
               "A little rain outside, a lot of emotion inside. The world was damp, but your family’s story got a brand-new center of gravity that day."
             </p>
-            <p className="text-xl font-black text-amber-300">
+            <p className="text-[11px] sm:text-xs font-bold text-amber-300">
               "Tiny human. Big entrance. Slight chance of lifelong chaos."
             </p>
           </div>
